@@ -6,7 +6,23 @@ import { BotError } from '../services/botEngine';
 import { orderToDTO, signalToDTO, tradeToDTO } from '../services/snapshot';
 import { toFriendly } from '../upbit/errors';
 
-const ALLOWED_ORIGINS = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+const LOCAL_HOSTS = ['127.0.0.1', 'localhost', '[::1]'];
+
+/**
+ * 허용 Host: 로컬 주소 + Tailscale(내 기기끼리만 연결되는 사설망) 주소 *.ts.net + .env의 ALLOWED_HOSTS.
+ * 서버는 여전히 127.0.0.1에만 열려 있어서, 폰 접속은 `tailscale serve`가 이 PC 안에서 대신 연결해 줄 때만 가능하다.
+ */
+export function isAllowedHost(host: string, extra: readonly string[] = []): boolean {
+  const h = host.toLowerCase().replace(/:\d+$/, '');
+  if (LOCAL_HOSTS.includes(h)) return true;
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net$/.test(h)) return true;
+  return extra.includes(h);
+}
+
+function isAllowedOrigin(origin: string, extra: readonly string[]): boolean {
+  const m = /^https?:\/\/([^/]+)$/i.exec(origin);
+  return !!m && isAllowedHost(m[1], extra);
+}
 const LIVE_CONFIRM_TEXT = '실제 주문에 동의합니다';
 
 /**
@@ -16,10 +32,9 @@ const LIVE_CONFIRM_TEXT = '실제 주문에 동의합니다';
  */
 export function createRouter(app: App): express.Router {
   const r = express.Router();
-  // DNS 리바인딩 방지: Host가 로컬 주소일 때만 응답
+  // DNS 리바인딩 방지: Host가 로컬/Tailscale 주소일 때만 응답
   r.use((req: Request, res: Response, next: NextFunction) => {
-    const host = String(req.headers.host ?? '').replace(/:\d+$/, '');
-    if (!['127.0.0.1', 'localhost', '[::1]'].includes(host)) {
+    if (!isAllowedHost(String(req.headers.host ?? ''), app.env.allowedHosts)) {
       res.status(403).json({ error: { code: 'FORBIDDEN_HOST', message: '허용되지 않은 접근이에요.' } });
       return;
     }
@@ -34,7 +49,7 @@ export function createRouter(app: App): express.Router {
 
   r.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
-    if (origin && !ALLOWED_ORIGINS.test(origin)) {
+    if (origin && !isAllowedOrigin(origin, app.env.allowedHosts)) {
       res.status(403).json({ error: { code: 'FORBIDDEN_ORIGIN', message: '허용되지 않은 접근이에요.' } });
       return;
     }

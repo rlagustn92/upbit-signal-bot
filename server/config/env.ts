@@ -17,6 +17,11 @@ export const env = {
   port: num(process.env.SERVER_PORT, 8787),
   /** 외부 접속 차단을 위해 기본 127.0.0.1 */
   host: process.env.SERVER_HOST?.trim() || '127.0.0.1',
+  /** 추가로 허용할 접속 주소(Host). 로컬과 Tailscale(*.ts.net)은 기본 허용 */
+  allowedHosts: (process.env.ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
   databasePath: path.resolve(root, process.env.DATABASE_PATH?.trim() || './data/bot.db'),
   dataDir: path.resolve(root, './data'),
   encryptionKeyHex: process.env.APP_ENCRYPTION_KEY?.trim() || '',

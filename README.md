@@ -26,6 +26,7 @@ npm install
 | `start-24h.bat` | **24시간 운영** — 빌드 후 http://127.0.0.1:8787, 서버가 죽으면 자동 재시작 |
 | `autostart-install.bat` / `autostart-remove.bat` | 윈도우 켤 때 자동 시작 등록/해제 |
 | `connect-cloud.bat` | 오라클 클라우드 서버에서 돌리는 봇 화면 열기(SSH 터널) |
+| `phone-on.bat` / `phone-off.bat` | **폰에서 봇 화면 열기** (Tailscale 사설망, 인터넷 비공개) — [docs/PHONE.md](docs/PHONE.md) |
 
 24시간 무료로 돌리는 방법(내 PC vs 오라클 클라우드 무료 서버)은 **[docs/DEPLOY.md](docs/DEPLOY.md)** 를 보세요.
 
