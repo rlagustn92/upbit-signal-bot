@@ -20,7 +20,16 @@ bash에서: `export PATH="$LOCALAPPDATA/node-portable/node-v24.21.0-win-x64:$PAT
 - [x] PHASE 10: LIVE 코드 경로(LiveExecutor) — **하드락 ON 기본, 사용자가 .env + 체크리스트 + 확인창을 거쳐야만 활성**
 - [x] QA 1차(서브에이전트) 피드백 반영 — CRASH 1건 + MAJOR 11건 + 주요 MINOR 수정, 회귀 테스트 tests/integration/qaRegression.test.ts
 - [x] 재시작 복구 실검증(서버 종료→재기동 후 봇/포지션/미체결/모의잔고 동일)
-- [ ] QA 2차(수정 재검증 + UI 클릭 흐름) 진행 중
+- [x] QA 2차 반영 — LIVE 접수 후 실패→UNKNOWN, 손절 재시도 15초 고정, 수수료 포함 최소금액, 모의 잔량 정리, 삭제 흐름, 고아 주문, crash.log, UI 다듬기
+- [x] 실전형 전략 강화 — RSI 반등 확인+EMA200 추세 필터 / 골든크로스 EMA+거래량 확인+ATR 손절+트레일링 / 그리드 ATR 간격+하락장 매수 멈춤 / 공통: 하루 최대 손실, 손실 후 쉬는 시간 / OHLCV 캔들 + 히스토리 페이지 조회
+- [x] 딸깍 실행 bat (start.bat, start-24h.bat, autostart-*.bat, connect-cloud.bat — CP949+CRLF로 저장해야 cmd에서 안 깨짐)
+- [x] 24시간 무료 운영 안내 docs/DEPLOY.md + 오라클 클라우드 설치 스크립트 deploy/oracle/setup.sh(systemd)
+- [x] GitHub 공개: https://github.com/rlagustn92/upbit-signal-bot (main = 개인정보 없는 새 이력, 로컬 `local-history` 브랜치는 이전 이력 — 절대 push 금지)
+
+## Git 운영 메모
+- 공개 브랜치: `main` → origin. 커밋 작성자는 GitHub noreply 이메일(로컬 git config에 설정됨)
+- `local-history`: 공개 전 이력(개인 이메일, 업비트 문서 사본 포함) — push하지 말 것
+- 로컬 전용(gitignore): `.env`, `data/`, `.claude/`, `docs/upbit-reference/`, `docs/upbit-openapi-summary.txt`, `cloud-connect.cfg`
 
 ## QA 1차에서 고친 것 (2026-10-03)
 - CRASH: 전략명 "constructor" 등 프로토타입 키 → 서버 다운 (isStrategyKind로 차단, 스냅샷 타이머 보호)
