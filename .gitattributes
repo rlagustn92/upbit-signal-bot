@@ -1,0 +1,4 @@
+# 윈도우 cmd 호환: bat 파일은 CP949 + CRLF 그대로 보관
+*.bat -text
+*.cmd -text
+*.sh text eol=lf

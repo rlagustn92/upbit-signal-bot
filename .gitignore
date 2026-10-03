@@ -1,0 +1,19 @@
+node_modules/
+dist/
+data/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials*.json
+.DS_Store
+
+# 로컬 전용(공개 저장소 제외)
+.claude/
+# 업비트 공식 문서 사본 — 저작권상 재배포하지 않음(로컬 개발 참고용, https://docs.upbit.com/kr)
+docs/upbit-reference/
+docs/upbit-openapi-summary.txt
+cloud-connect.cfg
