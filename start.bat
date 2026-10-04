@@ -10,18 +10,22 @@ echo   창을 닫으면 봇도 멈춥니다. (상태는 저장됨)
 echo ==============================================
 echo.
 
-rem -- Node.js 찾기 (설치된 Node -> 이 PC의 포터블 Node) --
-set "NODE_DIR="
+rem -- Node.js 찾기: PC에 설치된 Node -> 이 폴더의 runtime\node -> 예전 포터블 위치 --
 where node >nul 2>nul && goto :node_ok
-if exist "%LOCALAPPDATA%\node-portable\node-v24.21.0-win-x64\node.exe" (
-  set "NODE_DIR=%LOCALAPPDATA%\node-portable\node-v24.21.0-win-x64"
-  set "PATH=%LOCALAPPDATA%\node-portable\node-v24.21.0-win-x64;%PATH%"
-  goto :node_ok
-)
-echo [!] Node.js가 없습니다. 열리는 페이지에서 "LTS" 버전을 설치한 뒤 이 파일을 다시 실행하세요.
-start "" https://nodejs.org/ko
+if exist "%~dp0runtime\node\node.exe" goto :use_local_node
+if exist "%LOCALAPPDATA%\node-portable\node-v24.21.0-win-x64\node.exe" goto :use_portable_node
+echo [!] Node.js를 찾지 못했어요.
+echo     열리는 페이지에서 LTS 버전을 내려받아 설치한 뒤 이 파일을 다시 실행하세요. 회원가입은 필요 없어요.
+start "" https://nodejs.org/ko/download
 pause
 exit /b 1
+
+:use_local_node
+set "PATH=%~dp0runtime\node;%PATH%"
+goto :node_ok
+
+:use_portable_node
+set "PATH=%LOCALAPPDATA%\node-portable\node-v24.21.0-win-x64;%PATH%"
 
 :node_ok
 for /f "delims=" %%v in ('node -v') do echo Node.js %%v 확인

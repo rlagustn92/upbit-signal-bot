@@ -17,3 +17,6 @@ credentials*.json
 docs/upbit-reference/
 docs/upbit-openapi-summary.txt
 cloud-connect.cfg
+
+# 이 폴더 전용 Node.js(start.bat 등이 사용)
+runtime/
