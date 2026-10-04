@@ -71,7 +71,19 @@ function rebase(ctx: StrategyContext<GridCfg>, st: GridState, price: number): vo
 
 const fmt = (n: number) => n.toLocaleString('ko-KR', { maximumFractionDigits: n >= 100 ? 0 : 4 });
 /** 화면 문구용: 실제 주문 가격과 같도록 호가 단위로 맞춘 가격(매수 내림, 매도 올림) */
-const tickPrice = (n: number, mode: 'down' | 'up') => (n > 0 ? normalizePrice(n, mode).toNumber() : n);
+// 칸 가격은 기준가가 바뀌기 전까지 같으므로 결과를 기억해 둔다(실시간 평가·백테스트에서 매번 Decimal 계산 방지)
+const tickCache = new Map<string, number>();
+const tickPrice = (n: number, mode: 'down' | 'up') => {
+  if (!(n > 0)) return n;
+  const key = `${mode}:${n}`;
+  let v = tickCache.get(key);
+  if (v === undefined) {
+    if (tickCache.size > 2000) tickCache.clear();
+    v = normalizePrice(n, mode).toNumber();
+    tickCache.set(key, v);
+  }
+  return v;
+};
 
 /**
  * 무한 그물망(그리드)

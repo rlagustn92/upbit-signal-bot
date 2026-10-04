@@ -11,6 +11,8 @@ import type {
   TradingMode,
   UpdateBotRequest,
   AccountDTO,
+  BacktestRequest,
+  BacktestResultDTO,
 } from '../../shared/types';
 
 // 백엔드 API 호출. Secret Key는 등록할 때 한 번 서버로 보내고, 프론트 어디에도 저장하지 않는다.
@@ -79,6 +81,8 @@ export const api = {
   liveChecklist: () => request<{ items: LiveChecklistItem[]; liveEnabled: boolean; hardLock: boolean; confirmText: string }>('GET', '/live/checklist'),
   enableLive: (confirmText: string, withdrawPermissionOff: boolean) => request<{ liveEnabled: boolean }>('POST', '/live/enable', { confirmText, withdrawPermissionOff }),
   disableLive: () => request<{ liveEnabled: boolean; stoppedBots: number }>('POST', '/live/disable'),
+
+  backtest: (req: BacktestRequest) => request<BacktestResultDTO>('POST', '/backtest', req),
 
   emergencyStop: () => request<{ bots: number; cancelled: number; failed: number }>('POST', '/emergency-stop'),
   releaseEmergency: () => request<{ ok: true }>('POST', '/emergency-release'),

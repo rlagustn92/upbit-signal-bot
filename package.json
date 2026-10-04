@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:network": "cross-env RUN_NETWORK_TESTS=1 vitest run tests/integration",
-    "start:server": "tsx server/index.ts"
+    "start:server": "tsx server/index.ts",
+    "backtest": "tsx scripts/backtest.ts"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

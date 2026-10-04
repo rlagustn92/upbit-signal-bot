@@ -1,5 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { App } from '../app';
+import path from 'node:path';
+import { backtest, normalizeBacktestRequest } from '../backtest';
 import { STRATEGY_DEFAULTS } from '../config/strategyDefaults';
 import { log, type LogTag } from '../lib/logger';
 import { BotError } from '../services/botEngine';
@@ -105,6 +107,25 @@ export function createRouter(app: App): express.Router {
   // ───── 전략 기본값/마켓 ─────
   r.get('/strategy-defaults', wrap(() => STRATEGY_DEFAULTS));
   r.get('/markets', wrap(() => app.market.listKrwMarkets()));
+
+  // ───── 백테스트(과거 캔들로 전략 시험) — 한 번에 하나만(업비트 조회 한도 보호) ─────
+  let backtestRunning = false;
+  r.post(
+    '/backtest',
+    wrap(async (req) => {
+      const input = normalizeBacktestRequest((req.body ?? {}) as Record<string, unknown>);
+      if (backtestRunning) throw new BotError('BACKTEST_BUSY', '다른 백테스트가 진행 중이에요. 잠시 후 다시 해 주세요.', 409);
+      backtestRunning = true;
+      try {
+        const res = await backtest(app.rest, input, { cacheDir: path.join(app.env.dataDir, 'backtest-cache') });
+        log.info('SYSTEM', `백테스트 ${input.marketCode} ${input.strategy} ${res.request.days}일 → ${res.metrics.totalReturnPercent.toFixed(2)}% (매도 ${res.metrics.trades}회)`);
+        // 화면에는 요약 + 자산 곡선 + 최근 매도 50건만
+        return { request: res.request, config: res.config, simUnit: res.simUnit, analysisUnit: res.analysisUnit, metrics: res.metrics, equity: res.equity, trades: res.trades.slice(-50), notes: res.notes };
+      } finally {
+        backtestRunning = false;
+      }
+    }),
+  );
 
   // ───── 봇 ─────
   r.get('/bots', wrap(() => app.engine.toDTOs()));

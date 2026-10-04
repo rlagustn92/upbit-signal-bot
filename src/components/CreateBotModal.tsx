@@ -6,6 +6,7 @@ import { coinMeta, QUICK_PICK_MARKETS } from '../lib/coinMeta';
 import { baseSymbol, price, won } from '../lib/format';
 import { CANDLE_LABEL } from '../lib/labels';
 import { Sheet } from './Sheet';
+import { BacktestPanel } from './BacktestPanel';
 
 interface Props {
   livePrices: Record<string, number>;
@@ -43,7 +44,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
   const [defaults, setDefaults] = useState<StrategyDefaults | null>(null);
   const [markets, setMarkets] = useState<MarketDTO[]>([]);
   const [marketsError, setMarketsError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string>('KRW-DOGE');
+  const [selected, setSelected] = useState<string>('KRW-BTC');
   const [query, setQuery] = useState('');
   const [strategy, setStrategy] = useState<StrategyKind>('grid');
   const [tp, setTp] = useState(2.0);
@@ -125,7 +126,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
       {/* 1. 코인 선택 */}
       <div className="mt-5 space-y-2">
         <label className="text-[15px] font-extrabold text-[#191F28] block">1. 어떤 코인을 매매할까요?</label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {quick.map((m) => {
             const base = m.marketCode.split('-')[1];
             const isSelected = selected === m.marketCode;
@@ -372,6 +373,13 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
         </div>
         <p className="text-[11px] text-[#8B95A1]">이 봇은 이 금액을 넘어서 사지 않아요. 처음엔 모의투자 가상 원화로 동작해요.</p>
       </div>
+
+      {/* 5. 과거로 미리 테스트 */}
+      {defaults && (
+        <BacktestPanel
+          request={{ marketCode: selected, strategy, budgetKRW: budget, takeProfitPercent: tp, stopLossPercent: sl, strategyConfig: c as CreateBotRequest['strategyConfig'] }}
+        />
+      )}
 
       {/* 시작 버튼 */}
       <div className="mt-7 pt-4 border-t border-gray-100">

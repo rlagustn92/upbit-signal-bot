@@ -371,6 +371,51 @@ export interface UpdateBotRequest {
   strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig>;
 }
 
+/** 백테스트(과거 캔들로 전략 시험) */
+export interface BacktestRequest {
+  marketCode: string;
+  strategy: StrategyKind;
+  budgetKRW: number;
+  takeProfitPercent: number;
+  stopLossPercent: number;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig>;
+  days: number;
+}
+
+export interface BacktestMetricsDTO {
+  startAt: number;
+  endAt: number;
+  bars: number;
+  finalEquity: number;
+  totalReturnPercent: number;
+  buyHoldPercent: number;
+  trades: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+  payoffRatio: number | null;
+  profitFactor: number | null;
+  expectancy: number;
+  maxDrawdownPercent: number;
+  feesPaid: number;
+  stopLosses: number;
+  exposurePercent: number;
+  buys: number;
+  openPnl: number;
+}
+
+export interface BacktestResultDTO {
+  request: BacktestRequest;
+  simUnit: CandleUnit;
+  analysisUnit: CandleUnit | null;
+  metrics: BacktestMetricsDTO;
+  equity: Array<{ t: number; equity: number; price: number }>;
+  trades: Array<{ at: number; purpose: OrderPurpose; price: number; volume: number; pnl: number; pnlPercent: number }>;
+  notes: string[];
+}
+
 export interface ApiError {
   error: { code: string; message: string };
 }

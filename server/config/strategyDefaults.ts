@@ -87,5 +87,5 @@ export const ENGINE = {
   /** 계좌 잔고가 이 시간보다 오래되면 주문 전 다시 조회 */
   accountStaleMs: 15_000,
   /** 봇이 없어도 실시간 현재가를 받아두는 대표 마켓(코인 선택 화면 빠른 선택 + 연결 상태 확인용) */
-  watchMarkets: ['KRW-DOGE', 'KRW-BTC', 'KRW-ETH', 'KRW-SOL', 'KRW-XRP'],
+  watchMarkets: ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'],
 };

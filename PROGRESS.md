@@ -26,6 +26,7 @@ bash에서: `export PATH="$LOCALAPPDATA/node-portable/node-v24.21.0-win-x64:$PAT
 - [x] 24시간 무료 운영 안내 docs/DEPLOY.md + 오라클 클라우드 설치 스크립트 deploy/oracle/setup.sh(systemd)
 - [x] GitHub 공개: https://github.com/rlagustn92/upbit-signal-bot (main = 개인정보 없는 새 이력, 로컬 `local-history` 브랜치는 이전 이력 — 절대 push 금지)
 - [x] 폰 접속: Tailscale(*.ts.net Host 허용, 서버는 127.0.0.1 유지) + phone-on.bat / phone-off.bat, docs/PHONE.md
+- [x] 백테스트: server/backtest/(history 캐시 + simulator가 실제 전략 코드 재사용) + POST /api/backtest + 봇 만들기 화면 "과거로 미리 테스트" + `npm run backtest`. 기본 코인 BTC/ETH/XRP
 
 ## Git 운영 메모
 - 공개 브랜치: `main` → origin. 커밋 작성자는 GitHub noreply 이메일(로컬 git config에 설정됨)

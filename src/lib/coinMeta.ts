@@ -18,4 +18,4 @@ export function coinMeta(base: string): { icon: string; badgeBg: string } {
 }
 
 /** 모달의 빠른 선택(원본 UI의 4개 코인 순서 유지). 이름/가격은 업비트 실제 데이터로 채운다 */
-export const QUICK_PICK_MARKETS = ['KRW-DOGE', 'KRW-BTC', 'KRW-ETH', 'KRW-SOL'];
+export const QUICK_PICK_MARKETS = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'];
