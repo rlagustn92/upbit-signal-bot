@@ -10,4 +10,5 @@ export const STRATEGY_LABEL: Record<StrategyKind, string> = {
   grid: '무한 그물망(그리드)',
   rsi: '과매도 반등 줍줍(RSI)',
   goldenCross: '골든크로스 돌파',
+  bollinger: '볼린저 반등',
 };

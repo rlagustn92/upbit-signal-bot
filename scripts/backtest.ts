@@ -22,7 +22,7 @@ args.forEach((a, i) => {
 });
 
 const markets = (opt('market') ?? 'KRW-BTC,KRW-ETH,KRW-XRP').split(',').map((s) => s.trim().toUpperCase());
-const strategies = (opt('strategy') ?? 'all') === 'all' ? (['grid', 'rsi', 'goldenCross'] as StrategyKind[]) : ((opt('strategy') ?? '').split(',') as StrategyKind[]);
+const strategies = (opt('strategy') ?? 'all') === 'all' ? (['grid', 'rsi', 'goldenCross', 'bollinger'] as StrategyKind[]) : ((opt('strategy') ?? '').split(',') as StrategyKind[]);
 const days = Number(opt('days') ?? 90);
 const budget = Number(opt('budget') ?? 1_000_000);
 
@@ -31,7 +31,7 @@ const cacheDir = path.resolve(process.cwd(), 'data', 'backtest-cache');
 
 const pct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 const r2 = (n: number | null) => (n == null ? '-' : n.toFixed(2));
-const NAMES: Record<StrategyKind, string> = { grid: '그리드', rsi: 'RSI 반등', goldenCross: '골든크로스' };
+const NAMES: Record<StrategyKind, string> = { grid: '그리드', rsi: 'RSI 반등', goldenCross: '골든크로스', bollinger: '볼린저 반등' };
 
 const rows: Array<Record<string, string>> = [];
 const results: BacktestResponse[] = [];

@@ -59,3 +59,46 @@ describe('백테스트 시뮬레이터', () => {
     expect(buy.price).toBeGreaterThan(1000); // 상승 중 교차에서 매수
   });
 });
+
+describe('볼린저 반등 전략', () => {
+  const H = 3_600_000;
+  const toBars = (closes: number[]) => closes.map((c, i) => ({ start: T0 + i * H, open: i ? closes[i - 1] : c, high: Math.max(c, i ? closes[i - 1] : c), low: Math.min(c, i ? closes[i - 1] : c), close: c, volume: 100 }));
+  // 완만한 상승 + 작은 출렁임(볼린저 폭이 생기도록)
+  const base = (n: number) => Array.from({ length: n }, (_, i) => 1000 * (1 + 0.0005 * i) * (1 + 0.002 * Math.sin(i / 3)));
+
+  it('상승 추세에서 하단 아래로 급락하면 사고, 중심선으로 돌아오면 판다', () => {
+    const up = base(400);
+    const last = up[up.length - 1];
+    const closes = [...up, last * 0.982, last * 0.985, last * 0.995, last * 1.004, ...base(20).map((x) => (x / 1000) * last)];
+    const cfg = buildStrategyConfig('bollinger', { cooldownAfterLossMin: 0 });
+    const r = runBacktest({ marketCode: 'KRW-TEST', strategy: 'bollinger', config: cfg, budgetKRW: 100_000, takeProfitPercent: 2, stopLossPercent: 8, bars: toBars(closes), unitMs: H, warmup: 350 });
+    const buy = r.fills.find((f) => f.side === 'bid');
+    expect(buy).toBeDefined();
+    expect(buy!.price).toBeLessThan(last * 0.99); // 급락 캔들에서 매수
+    expect(r.trades[0].purpose).toBe('EXIT'); // 중심선 복귀 매도(목표 익절% 안 씀)
+  });
+
+  it('큰 추세선(EMA100) 아래(하락 흐름)에서는 하단을 뚫어도 사지 않는다', () => {
+    const down = Array.from({ length: 400 }, (_, i) => 1000 * (1 - 0.001 * i) * (1 + 0.002 * Math.sin(i / 3)));
+    const last = down[down.length - 1];
+    const closes = [...down, last * 0.96, last * 0.97, last];
+    const cfg = buildStrategyConfig('bollinger', {});
+    const r = runBacktest({ marketCode: 'KRW-TEST', strategy: 'bollinger', config: cfg, budgetKRW: 100_000, takeProfitPercent: 2, stopLossPercent: 8, bars: toBars(closes), unitMs: H, warmup: 350 });
+    expect(r.metrics.buys).toBe(0);
+  });
+
+  it('중심선으로 안 돌아오면 최대 보유 캔들 수 뒤에 정리한다(시간 손절)', () => {
+    const up = base(400);
+    const last = up[up.length - 1];
+    // 급락 후 하단 근처에서 횡보(중심선 아래 유지)
+    const closes = [...up, last * 0.982, ...Array.from({ length: 30 }, () => last * 0.981)];
+    const cfg = buildStrategyConfig('bollinger', { maxHoldBars: 10, cooldownAfterLossMin: 0 });
+    const r = runBacktest({ marketCode: 'KRW-TEST', strategy: 'bollinger', config: cfg, budgetKRW: 100_000, takeProfitPercent: 2, stopLossPercent: 8, bars: toBars(closes), unitMs: H, warmup: 350 });
+    expect(r.metrics.buys).toBeGreaterThanOrEqual(1);
+    const firstExit = r.trades[0];
+    const buyAt = r.fills.find((f) => f.side === 'bid')!.at;
+    expect(firstExit.purpose).toBe('EXIT');
+    expect(Math.round((firstExit.at - buyAt) / H)).toBeGreaterThanOrEqual(9);
+    expect(Math.round((firstExit.at - buyAt) / H)).toBeLessThanOrEqual(11);
+  });
+});

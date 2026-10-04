@@ -44,7 +44,7 @@ export function normalizeBacktestRequest(body: Record<string, unknown>): Backtes
     strategyConfig: (body.strategyConfig ?? {}) as CreateBotRequest['strategyConfig'],
     days: Math.round(n(body.days, 90)),
   };
-  if (!(req.days >= 3 && req.days <= 365)) throw new BotError('BAD_DAYS', '기간은 3 ~ 365일 사이로 정해 주세요.', 400);
+  if (!(req.days >= 3 && req.days <= 1500)) throw new BotError('BAD_DAYS', '기간은 3 ~ 1500일 사이로 정해 주세요.', 400);
   if (!(req.budgetKRW >= 10_000 && req.budgetKRW <= 1_000_000_000)) throw new BotError('BAD_BUDGET', '예산은 1만 원 ~ 10억 원 사이로 정해 주세요.', 400);
   if (!(req.takeProfitPercent > 0 && req.takeProfitPercent <= 100)) throw new BotError('BAD_TP', '익절은 0 ~ 100% 사이로 정해 주세요.', 400);
   if (!(req.stopLossPercent > 0 && req.stopLossPercent < 100)) throw new BotError('BAD_SL', '손절은 0 ~ 100% 사이로 정해 주세요.', 400);

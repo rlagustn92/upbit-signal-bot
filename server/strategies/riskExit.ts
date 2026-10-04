@@ -90,8 +90,9 @@ export function riskExitIntents(ctx: StrategyContext): StrategyIntent[] {
     quantity: ctx.position.quantity,
     takeProfitPercent: ctx.bot.takeProfitPercent,
     stopLossPercent: ctx.bot.stopLossPercent,
-    useTakeProfit: ctx.bot.strategy !== 'grid',
-    trailingStopPercent: ctx.bot.strategy !== 'grid' ? trailing : 0,
+    // 그리드(칸별 익절)와 볼린저(중심선 복귀에서 매도)는 공통 목표 익절을 쓰지 않는다
+    useTakeProfit: ctx.bot.strategy !== 'grid' && ctx.bot.strategy !== 'bollinger',
+    trailingStopPercent: ctx.bot.strategy !== 'grid' && ctx.bot.strategy !== 'bollinger' ? trailing : 0,
     peak: risk.peak,
     atrStopPrice,
   });

@@ -3,12 +3,14 @@ import { STRATEGY_DEFAULTS } from '../config/strategyDefaults';
 import { gridStrategy } from './grid';
 import { rsiStrategy } from './rsi';
 import { goldenCrossStrategy } from './goldenCross';
+import { bollingerStrategy } from './bollinger';
 import type { Strategy } from './types';
 
 export const STRATEGIES: Record<StrategyKind, Strategy> = {
   grid: gridStrategy as unknown as Strategy,
   rsi: rsiStrategy as unknown as Strategy,
   goldenCross: goldenCrossStrategy as unknown as Strategy,
+  bollinger: bollingerStrategy as unknown as Strategy,
 };
 
 /** 문자열이 지원하는 전략인지(프로토타입 키 'constructor' 등 차단) */
@@ -66,6 +68,19 @@ export function buildStrategyConfig(kind: StrategyKind, input: CreateBotRequest[
       ...buildRisk(i, d),
     };
   }
+  if (kind === 'bollinger') {
+    const d = STRATEGY_DEFAULTS.bollinger;
+    return {
+      kind,
+      candleUnit: (CANDLE_UNITS.includes(i.candleUnit as CandleUnit) ? i.candleUnit : d.candleUnit) as CandleUnit,
+      period: Math.round(num(i.period, d.period)),
+      k: num(i.k, d.k),
+      trendEmaPeriod: Math.round(num(i.trendEmaPeriod, d.trendEmaPeriod)),
+      maxHoldBars: Math.round(num(i.maxHoldBars, d.maxHoldBars)),
+      entryRatio: num(i.entryRatio, d.entryRatio),
+      ...buildRisk(i, d),
+    };
+  }
   const d = STRATEGY_DEFAULTS.goldenCross;
   return {
     kind: 'goldenCross',
@@ -107,6 +122,13 @@ export function validateStrategyConfig(cfg: StrategyConfig, budgetKRW: number, m
     if (cfg.splitRatio * cfg.maxEntries > 1 + 1e-9) e.push(`1회 비율 × 최대 횟수(${Math.round(cfg.splitRatio * cfg.maxEntries * 100)}%)가 예산(100%)을 넘어요. 마지막 매수는 예산 초과로 실행되지 않아요.`);
     if (Math.floor(budgetKRW * cfg.splitRatio) < minOrderKRW) e.push(`1회 매수 금액이 최소 주문 금액(${minOrderKRW.toLocaleString('ko-KR')}원)보다 작아요.`);
     if (!(cfg.trendEmaPeriod === 0 || (cfg.trendEmaPeriod >= 20 && cfg.trendEmaPeriod <= 400))) e.push('추세 필터 기간은 0(끔) 또는 20 ~ 400 사이로 정해 주세요.');
+  } else if (cfg.kind === 'bollinger') {
+    if (!(cfg.period >= 5 && cfg.period <= 100)) e.push('볼린저 기간은 5 ~ 100 사이로 정해 주세요.');
+    if (!(cfg.k >= 1 && cfg.k <= 4)) e.push('밴드 폭(표준편차 배수)은 1 ~ 4 사이로 정해 주세요.');
+    if (!(cfg.trendEmaPeriod === 0 || (cfg.trendEmaPeriod >= 20 && cfg.trendEmaPeriod <= 160))) e.push('큰 추세선 기간은 0(끔) 또는 20 ~ 160 사이로 정해 주세요.');
+    if (!(cfg.maxHoldBars >= 0 && cfg.maxHoldBars <= 500)) e.push('최대 보유 캔들 수는 0(끔) ~ 500 사이로 정해 주세요.');
+    if (!(cfg.entryRatio > 0 && cfg.entryRatio <= 1)) e.push('진입 비율은 0 ~ 1 사이여야 해요.');
+    if (Math.floor(budgetKRW * cfg.entryRatio) < minOrderKRW) e.push(`매수 금액이 최소 주문 금액(${minOrderKRW.toLocaleString('ko-KR')}원)보다 작아요.`);
   } else {
     if (!(cfg.shortPeriod >= 2 && cfg.shortPeriod < cfg.longPeriod && cfg.longPeriod <= 200)) e.push('이동평균 기간은 2 ≤ 단기 < 장기 ≤ 200 이어야 해요.');
     if (!(cfg.entryRatio > 0 && cfg.entryRatio <= 1)) e.push('진입 비율은 0 ~ 1 사이여야 해요.');

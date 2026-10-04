@@ -56,6 +56,19 @@ export const STRATEGY_DEFAULTS: StrategyDefaults = {
     cooldownAfterLossMin: 120,
   },
 
+  // 연구 결과(scripts/research.ts, 2022-10~2026-10 BTC/ETH/XRP 60분봉): EMA100 위 · k=2.5 · 최대 50봉 보유가 가장 꾸준했음
+  bollinger: {
+    candleUnit: '60m',
+    period: 20,
+    k: 2.5,
+    trendEmaPeriod: 100,
+    maxHoldBars: 50,
+    entryRatio: 1.0,
+    trailingStopPercent: 0, // 중심선 복귀에서 팔기 때문에 쓰지 않음
+    dailyLossLimitPercent: 5,
+    cooldownAfterLossMin: 0, // 연구에서는 쉬는 시간 없이 검증함
+  },
+
   /** /v1/orders/chance 조회 전 또는 PAPER 모드에서 쓰는 KRW 마켓 수수료율(0.05%) */
   feeRateDefault: 0.0005,
   /** /v1/orders/chance 의 min_total 조회 전 사용하는 값. 출처: docs/upbit-reference/docs_krw-market-info.md */

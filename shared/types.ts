@@ -3,7 +3,7 @@
 // 쉬운 한국어 표현은 화면(src/)에서만 변환한다.
 
 export type TradingMode = 'PAPER' | 'LIVE';
-export type StrategyKind = 'grid' | 'rsi' | 'goldenCross';
+export type StrategyKind = 'grid' | 'rsi' | 'goldenCross' | 'bollinger';
 export type OrderSide = 'bid' | 'ask';
 /** 업비트 ord_type */
 export type OrderType = 'limit' | 'price' | 'market' | 'best';
@@ -98,10 +98,29 @@ export interface GoldenCrossConfig extends RiskConfig {
   exitOnDeadCross: boolean;
 }
 
+/**
+ * 볼린저 반등: 큰 추세(EMA) 위에서 종가가 볼린저 하단(평균 - k×표준편차) 아래로 내려오면 사고,
+ * 종가가 중심선(평균)으로 돌아오면 판다. 오래 안 돌아오면 정한 캔들 수 뒤에 판다(시간 손절).
+ */
+export interface BollingerConfig extends RiskConfig {
+  candleUnit: CandleUnit;
+  /** 볼린저 기간(평균·표준편차) */
+  period: number;
+  /** 밴드 폭(표준편차 배수) */
+  k: number;
+  /** 큰 추세 EMA 기간 — 종가가 이 위일 때만 매수. 0이면 끔 */
+  trendEmaPeriod: number;
+  /** 최대 보유 캔들 수(시간 손절). 0이면 끔 */
+  maxHoldBars: number;
+  /** 진입 금액 = 예산 × entryRatio */
+  entryRatio: number;
+}
+
 export type StrategyConfig =
   | ({ kind: 'grid' } & GridConfig)
   | ({ kind: 'rsi' } & RsiConfig)
-  | ({ kind: 'goldenCross' } & GoldenCrossConfig);
+  | ({ kind: 'goldenCross' } & GoldenCrossConfig)
+  | ({ kind: 'bollinger' } & BollingerConfig);
 
 export interface StrategyDefaults {
   takeProfitPercent: number;
@@ -112,6 +131,7 @@ export interface StrategyDefaults {
   grid: GridConfig;
   rsi: RsiConfig;
   goldenCross: GoldenCrossConfig;
+  bollinger: BollingerConfig;
   feeRateDefault: number;
   minOrderKRWDefault: number;
 }
@@ -358,7 +378,7 @@ export interface CreateBotRequest {
   budgetKRW: number;
   takeProfitPercent: number;
   stopLossPercent: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
   name?: string;
   start?: boolean;
 }
@@ -368,7 +388,7 @@ export interface UpdateBotRequest {
   budgetKRW?: number;
   takeProfitPercent?: number;
   stopLossPercent?: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
 }
 
 /** 백테스트(과거 캔들로 전략 시험) */
@@ -378,7 +398,7 @@ export interface BacktestRequest {
   budgetKRW: number;
   takeProfitPercent: number;
   stopLossPercent: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
   days: number;
 }
 

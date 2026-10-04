@@ -64,7 +64,7 @@ export function BacktestPanel({ request }: { request: Omit<BacktestRequest, 'day
         disabled={loading}
         className="mt-3 w-full bg-white border border-[#093687] text-[#093687] py-2.5 rounded-xl font-extrabold text-sm hover:bg-blue-50 transition-all disabled:opacity-60"
       >
-        {loading ? '과거 캔들 받아서 계산하는 중… (처음엔 1~2분)' : current ? '다시 테스트' : `최근 ${days === 365 ? '1년' : `${days}일`}로 테스트하기`}
+        {loading ? '과거 캔들 받아서 계산하는 중… (처음엔 1~2분)' : current ? '다시 테스트' : days === 365 ? '최근 1년으로 테스트하기' : `최근 ${days}일로 테스트하기`}
       </button>
       {error && <p className="mt-2 text-xs font-bold text-[#F04452]">{error}</p>}
 

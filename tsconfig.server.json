@@ -13,5 +13,5 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
-  "include": ["server", "shared", "tests", "scripts/backtest.ts", "vitest.config.ts"]
+  "include": ["server", "shared", "tests", "scripts/backtest.ts", "scripts/research.ts", "vitest.config.ts"]
 }
