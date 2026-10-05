@@ -33,6 +33,10 @@ async function main(): Promise<void> {
   };
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
+  // 운영 실행기(scripts/start.mjs)의 정상 종료 요청 — 윈도우에서는 SIGTERM을 보낼 수 없어서 IPC로 받는다
+  process.on('message', (m) => {
+    if ((m as { cmd?: string } | null)?.cmd === 'shutdown') shutdown('끄기 요청');
+  });
   process.on('unhandledRejection', (e) => log.error('ERROR', `처리되지 않은 오류: ${(e as Error)?.message ?? e}`));
   process.on('uncaughtException', (e) => {
     // 상태를 알 수 없으므로 기록 후 종료 → 운영 실행기(scripts/start.mjs)가 다시 켜고 재시작 복구가 상태를 맞춘다

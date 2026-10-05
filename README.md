@@ -24,7 +24,9 @@ npm install
 |---|---|
 | `start.bat` | **테스트 실행** — 처음이면 자동 설치 → 서버 실행 → 브라우저(http://localhost:5173) 자동 열기 |
 | `start-24h.bat` | **24시간 운영** — 빌드 후 http://127.0.0.1:8787, 서버가 죽으면 자동 재시작 |
-| `autostart-install.bat` / `autostart-remove.bat` | 윈도우 켤 때 자동 시작 등록/해제 |
+| `bot-start-background.bat` | **창 없이 24시간 운영** — 백그라운드로 켜고 창은 저절로 닫힘 |
+| `bot-control.bat` | 지금 상태 확인 · 화면 열기 · **끄기** · 켜기 · 최근 기록 보기 |
+| `autostart-install.bat` / `autostart-remove.bat` | 윈도우 켤 때 자동 시작 등록/해제 (창 없이 켜짐) |
 | `connect-cloud.bat` | 오라클 클라우드 서버에서 돌리는 봇 화면 열기(SSH 터널) |
 | `phone-on.bat` / `phone-off.bat` | **폰에서 봇 화면 열기** (Tailscale 사설망, 인터넷 비공개) — [docs/PHONE.md](docs/PHONE.md) |
 
