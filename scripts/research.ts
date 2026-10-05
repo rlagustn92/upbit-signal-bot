@@ -348,9 +348,26 @@ const BASE_STRATS: StrategyDef[] = [
     exit: (s, i) => s.c[i] >= SMA(s, 20)[i],
     maxHold: (p) => p.hold,
   },
+  {
+    // TradingView 'Momentum Sequence Strategy+ [Herman]': 음봉(기준) 뒤 n개 연속 양봉,
+    // 각 양봉 저가 > 기준 음봉 저가, 종가가 계속 높아짐 → 다음 시가 매수. 손절 = 기준 음봉 저가, 익절 = 마지막 종가 + R배수
+    name: '모멘텀시퀀스',
+    params: grid({ n: [2, 3, 4, 5], tpR: [0.5, 1, 1.5, 2] }),
+    entry: (s, i, p, ref) => {
+      const m = i - p.n;
+      if (m < 1 || !(s.c[m] < s.o[m])) return null;
+      for (let k = m + 1; k <= i; k++) {
+        if (!(s.c[k] > s.o[k] && s.l[k] > s.l[m] && s.c[k] > s.c[k - 1])) return null;
+      }
+      const stop = s.l[m];
+      const risk = s.c[i] - stop;
+      if (!(risk > 0) || !(stop < ref)) return null;
+      return { stop, target: s.c[i] + p.tpR * risk };
+    },
+  },
 ];
 
-const REGIME_TARGETS = ['VWMA눌림목', 'VWMA돌파', 'RSI2평균회귀', '볼린저회귀', 'VWMA+RSI눌림', 'VWMA지정가', 'RSI눌림+ATR익절'];
+const REGIME_TARGETS = ['모멘텀시퀀스', 'VWMA눌림목', 'VWMA돌파', 'RSI2평균회귀', '볼린저회귀', 'VWMA+RSI눌림', 'VWMA지정가', 'RSI눌림+ATR익절'];
 const STRATS: StrategyDef[] = [...BASE_STRATS, ...BASE_STRATS.filter((x) => REGIME_TARGETS.includes(x.name)).map(withRegime)];
 
 // ───────────── 거래 시뮬레이션 ─────────────
