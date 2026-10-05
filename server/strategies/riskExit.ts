@@ -62,6 +62,9 @@ interface RiskState {
   entryAtr?: number;
 }
 
+/** 공통 목표 익절·트레일링을 쓰지 않는 전략(자기 규칙으로 판다) */
+const NO_TP: string[] = ['grid', 'bollinger', 'copyTrade'];
+
 const fmt = (n: number) => n.toLocaleString('ko-KR', { maximumFractionDigits: n >= 100 ? 0 : 4 });
 
 export function riskExitIntents(ctx: StrategyContext): StrategyIntent[] {
@@ -90,9 +93,9 @@ export function riskExitIntents(ctx: StrategyContext): StrategyIntent[] {
     quantity: ctx.position.quantity,
     takeProfitPercent: ctx.bot.takeProfitPercent,
     stopLossPercent: ctx.bot.stopLossPercent,
-    // 그리드(칸별 익절)와 볼린저(중심선 복귀에서 매도)는 공통 목표 익절을 쓰지 않는다
-    useTakeProfit: ctx.bot.strategy !== 'grid' && ctx.bot.strategy !== 'bollinger',
-    trailingStopPercent: ctx.bot.strategy !== 'grid' && ctx.bot.strategy !== 'bollinger' ? trailing : 0,
+    // 그리드(칸별 익절)·볼린저(중심선 복귀)·따라하기(그 사람이 팔 때)는 공통 목표 익절을 쓰지 않는다
+    useTakeProfit: !NO_TP.includes(ctx.bot.strategy),
+    trailingStopPercent: !NO_TP.includes(ctx.bot.strategy) ? trailing : 0,
     peak: risk.peak,
     atrStopPrice,
   });

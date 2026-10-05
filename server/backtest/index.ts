@@ -32,6 +32,7 @@ const GRID_SIM_UNIT: CandleUnit = '5m';
 export function normalizeBacktestRequest(body: Record<string, unknown>): BacktestRequest {
   const strategy = body.strategy;
   if (!isStrategyKind(strategy)) throw new BotError('BAD_STRATEGY', '지원하지 않는 전략이에요.', 400);
+  if (strategy === 'copyTrade') throw new BotError('BAD_STRATEGY', '고수 따라하기는 과거 캔들만으로 테스트할 수 없어요. (npm run hl-pick 결과 참고)', 400);
   const marketCode = String(body.marketCode ?? '').toUpperCase();
   if (!/^KRW-[A-Z0-9]{1,15}$/.test(marketCode)) throw new BotError('BAD_MARKET', '원화(KRW) 마켓 코드가 아니에요. 예: KRW-BTC', 400);
   const n = (v: unknown, def: number) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : def);

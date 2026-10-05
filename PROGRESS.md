@@ -28,6 +28,8 @@ bash에서: `export PATH="$LOCALAPPDATA/node-portable/node-v24.21.0-win-x64:$PAT
 - [x] 폰 접속: Tailscale(*.ts.net Host 허용, 서버는 127.0.0.1 유지) + phone-on.bat / phone-off.bat, docs/PHONE.md
 - [x] 백테스트: server/backtest/(history 캐시 + simulator가 실제 전략 코드 재사용) + POST /api/backtest + 봇 만들기 화면 "과거로 미리 테스트" + `npm run backtest`. 기본 코인 BTC/ETH/XRP
 - [x] 전략 연구(scripts/research.ts, docs/RESEARCH.md) → 4번째 전략 "볼린저 반등"(server/strategies/bollinger.ts) 추가. 연구 도구의 지정가 같은 캔들 익절 편향 버그 수정함
+- [x] 창 없이 운영: bot-start-background.bat / bot-control.bat(상태·화면·끄기·기록), scripts/start.mjs 가 data/run/stop.request + IPC로 정상 종료, 중복 실행 방지
+- [x] 5번째 전략(실험·모의투자 전용) "하이퍼리퀴드 고수 따라하기": server/hyperliquid/(client·watcher·replay), server/strategies/copyTrade.ts, GET /api/copy/traders, 화면 CopyTradersPanel. 고수 고르기 npm run hl-pick → docs/COPYTRADE.md. LIVE 전환 차단
 
 ## Git 운영 메모
 - 공개 브랜치: `main` → origin. 커밋 작성자는 GitHub noreply 이메일(로컬 git config에 설정됨)
@@ -76,3 +78,7 @@ bash에서: `export PATH="$LOCALAPPDATA/node-portable/node-v24.21.0-win-x64:$PAT
 - 업비트 공식 문서 47개 페이지 사본 저장 및 OpenAPI 요약 생성
 - 백엔드/프론트/테스트/README 초판 완성, 실시간 시세로 PAPER 봇 3개 구동 확인
 - 통합 테스트로 결함 발견·수정: 손절 직후 그리드가 하락 중 즉시 재매수 → 손절 체결 시 봇 자동 OFF
+### 2026-10-05
+- TradingView 모멘텀 시퀀스 전략 연구 → 채택 안 함(최악 1회 −40%)
+- 백그라운드 실행/끄기 파일 추가(가짜 서버로 켜기·끄기·중복 방지 검증)
+- 하이퍼리퀴드 따라하기 추가. 리더보드 500명 분석: BTC·ETH·XRP 거래자 267명, 조건 통과 90명, 상위 5명 선정(같은 기간 그냥 보유도 +28~39%였던 상승장이라 과거 숫자는 참고용)

@@ -15,7 +15,8 @@
     "test:network": "cross-env RUN_NETWORK_TESTS=1 vitest run tests/integration",
     "start:server": "tsx server/index.ts",
     "backtest": "tsx scripts/backtest.ts",
-    "research": "tsx scripts/research.ts"
+    "research": "tsx scripts/research.ts",
+    "hl-pick": "tsx scripts/hl-pick.ts"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

@@ -3,7 +3,7 @@
 // 쉬운 한국어 표현은 화면(src/)에서만 변환한다.
 
 export type TradingMode = 'PAPER' | 'LIVE';
-export type StrategyKind = 'grid' | 'rsi' | 'goldenCross' | 'bollinger';
+export type StrategyKind = 'grid' | 'rsi' | 'goldenCross' | 'bollinger' | 'copyTrade';
 export type OrderSide = 'bid' | 'ask';
 /** 업비트 ord_type */
 export type OrderType = 'limit' | 'price' | 'market' | 'best';
@@ -116,11 +116,25 @@ export interface BollingerConfig extends RiskConfig {
   entryRatio: number;
 }
 
+/**
+ * 하이퍼리퀴드 고수 따라하기(실험, 모의투자 전용): 지정한 지갑들이 이 코인 롱을 새로 잡으면
+ * 예산을 사람 수로 나눈 만큼 사고, 그 사람이 롱을 정리(또는 숏 전환)하면 그 몫을 판다. 레버리지·숏은 따라 하지 않는다.
+ */
+export interface CopyTradeConfig extends RiskConfig {
+  /** 따라 할 하이퍼리퀴드 지갑 주소(0x…40자리), 1~10개 */
+  addresses: string[];
+  /** 봇을 켤 때 이미 롱을 들고 있는 사람도 바로 따라 살지(false면 새로 진입할 때만) */
+  joinExisting: boolean;
+  /** 이 시간(초)보다 오래된 조회 값으로는 매매하지 않음 */
+  maxStaleSec: number;
+}
+
 export type StrategyConfig =
   | ({ kind: 'grid' } & GridConfig)
   | ({ kind: 'rsi' } & RsiConfig)
   | ({ kind: 'goldenCross' } & GoldenCrossConfig)
-  | ({ kind: 'bollinger' } & BollingerConfig);
+  | ({ kind: 'bollinger' } & BollingerConfig)
+  | ({ kind: 'copyTrade' } & CopyTradeConfig);
 
 export interface StrategyDefaults {
   takeProfitPercent: number;
@@ -132,6 +146,7 @@ export interface StrategyDefaults {
   rsi: RsiConfig;
   goldenCross: GoldenCrossConfig;
   bollinger: BollingerConfig;
+  copyTrade: CopyTradeConfig;
   feeRateDefault: number;
   minOrderKRWDefault: number;
 }
@@ -378,7 +393,7 @@ export interface CreateBotRequest {
   budgetKRW: number;
   takeProfitPercent: number;
   stopLossPercent: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig & CopyTradeConfig>;
   name?: string;
   start?: boolean;
 }
@@ -388,17 +403,36 @@ export interface UpdateBotRequest {
   budgetKRW?: number;
   takeProfitPercent?: number;
   stopLossPercent?: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig & CopyTradeConfig>;
 }
 
 /** 백테스트(과거 캔들로 전략 시험) */
+/** 따라하기: 따라 하는 지갑 한 명의 현재 상태 */
+export interface CopyTraderDTO {
+  address: string;
+  /** 이 주소를 따라 하는 봇 id들 */
+  botIds: number[];
+  ok: boolean;
+  updatedAt: number | null;
+  accountValue: number | null;
+  error: string | null;
+  positions: Array<{ coin: string; size: number; entryPx: number | null; unrealizedPnl: number | null; leverage: number | null }>;
+}
+
+export interface CopyTradersResponse {
+  traders: CopyTraderDTO[];
+  /** npm run hl-pick 으로 고른 날짜(없으면 null) */
+  pickedAt: string | null;
+  coins: string[];
+}
+
 export interface BacktestRequest {
   marketCode: string;
   strategy: StrategyKind;
   budgetKRW: number;
   takeProfitPercent: number;
   stopLossPercent: number;
-  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig>;
+  strategyConfig?: Partial<GridConfig & RsiConfig & GoldenCrossConfig & BollingerConfig & CopyTradeConfig>;
   days: number;
 }
 

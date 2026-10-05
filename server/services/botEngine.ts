@@ -496,6 +496,9 @@ export class BotEngine {
     if (D(this.positions.get(id, bot.marketCode).quantity).gt(0)) {
       throw new BotError('HAS_POSITION', '이 봇이 들고 있는 코인이 있어서 모드를 바꿀 수 없어요. (모의/실전 기록이 섞이지 않도록)', 409);
     }
+    if (mode === 'LIVE' && bot.strategy === 'copyTrade') {
+      throw new BotError('PAPER_ONLY', '고수 따라하기는 실험용이라 모의투자에서만 쓸 수 있어요.', 409);
+    }
     if (mode === 'LIVE') {
       const g = this.orders.liveGate();
       if (!g.ok) throw new BotError('LIVE_LOCKED', g.reason, 409);

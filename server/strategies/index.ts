@@ -1,9 +1,11 @@
 import type { CandleUnit, CreateBotRequest, StrategyConfig, StrategyKind } from '../../shared/types';
-import { STRATEGY_DEFAULTS } from '../config/strategyDefaults';
+import { STRATEGY_DEFAULTS, defaultCopyAddresses } from '../config/strategyDefaults';
+import { isHlAddress } from '../hyperliquid/client';
 import { gridStrategy } from './grid';
 import { rsiStrategy } from './rsi';
 import { goldenCrossStrategy } from './goldenCross';
 import { bollingerStrategy } from './bollinger';
+import { copyTradeStrategy } from './copyTrade';
 import type { Strategy } from './types';
 
 export const STRATEGIES: Record<StrategyKind, Strategy> = {
@@ -11,6 +13,7 @@ export const STRATEGIES: Record<StrategyKind, Strategy> = {
   rsi: rsiStrategy as unknown as Strategy,
   goldenCross: goldenCrossStrategy as unknown as Strategy,
   bollinger: bollingerStrategy as unknown as Strategy,
+  copyTrade: copyTradeStrategy as unknown as Strategy,
 };
 
 /** 문자열이 지원하는 전략인지(프로토타입 키 'constructor' 등 차단) */
@@ -81,6 +84,19 @@ export function buildStrategyConfig(kind: StrategyKind, input: CreateBotRequest[
       ...buildRisk(i, d),
     };
   }
+  if (kind === 'copyTrade') {
+    const d = STRATEGY_DEFAULTS.copyTrade;
+    // 주소는 배열 또는 줄바꿈/쉼표로 구분한 글자로 받는다
+    const raw = Array.isArray(i.addresses) ? i.addresses : typeof i.addresses === 'string' ? i.addresses.split(/[\s,]+/) : null;
+    const addresses = raw ? [...new Set(raw.map((a) => String(a).trim().toLowerCase()).filter(Boolean))] : defaultCopyAddresses();
+    return {
+      kind,
+      addresses,
+      joinExisting: bool(i.joinExisting, d.joinExisting),
+      maxStaleSec: Math.round(num(i.maxStaleSec, d.maxStaleSec)),
+      ...buildRisk(i, d),
+    };
+  }
   const d = STRATEGY_DEFAULTS.goldenCross;
   return {
     kind: 'goldenCross',
@@ -129,6 +145,14 @@ export function validateStrategyConfig(cfg: StrategyConfig, budgetKRW: number, m
     if (!(cfg.maxHoldBars >= 0 && cfg.maxHoldBars <= 500)) e.push('최대 보유 캔들 수는 0(끔) ~ 500 사이로 정해 주세요.');
     if (!(cfg.entryRatio > 0 && cfg.entryRatio <= 1)) e.push('진입 비율은 0 ~ 1 사이여야 해요.');
     if (Math.floor(budgetKRW * cfg.entryRatio) < minOrderKRW) e.push(`매수 금액이 최소 주문 금액(${minOrderKRW.toLocaleString('ko-KR')}원)보다 작아요.`);
+  } else if (cfg.kind === 'copyTrade') {
+    if (!cfg.addresses.length) e.push('따라 할 하이퍼리퀴드 지갑 주소를 1개 이상 넣어 주세요.');
+    if (cfg.addresses.length > 10) e.push('따라 할 주소는 10개까지예요.');
+    const bad = cfg.addresses.find((a) => !isHlAddress(a));
+    if (bad) e.push(`지갑 주소 형식이 아니에요: ${bad.slice(0, 20)} (0x로 시작하는 42자)`);
+    if (!(cfg.maxStaleSec >= 10 && cfg.maxStaleSec <= 600)) e.push('조회 지연 허용 시간은 10 ~ 600초 사이로 정해 주세요.');
+    const per = Math.floor(budgetKRW / Math.max(1, cfg.addresses.length));
+    if (per < minOrderKRW) e.push(`한 사람 몫(예산 ÷ ${cfg.addresses.length}명 = ${per.toLocaleString('ko-KR')}원)이 최소 주문 금액(${minOrderKRW.toLocaleString('ko-KR')}원)보다 작아요.`);
   } else {
     if (!(cfg.shortPeriod >= 2 && cfg.shortPeriod < cfg.longPeriod && cfg.longPeriod <= 200)) e.push('이동평균 기간은 2 ≤ 단기 < 장기 ≤ 200 이어야 해요.');
     if (!(cfg.entryRatio > 0 && cfg.entryRatio <= 1)) e.push('진입 비율은 0 ~ 1 사이여야 해요.');

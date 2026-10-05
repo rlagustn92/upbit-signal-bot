@@ -31,7 +31,7 @@ const cacheDir = path.resolve(process.cwd(), 'data', 'backtest-cache');
 
 const pct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 const r2 = (n: number | null) => (n == null ? '-' : n.toFixed(2));
-const NAMES: Record<StrategyKind, string> = { grid: '그리드', rsi: 'RSI 반등', goldenCross: '골든크로스', bollinger: '볼린저 반등' };
+const NAMES: Record<StrategyKind, string> = { grid: '그리드', rsi: 'RSI 반등', goldenCross: '골든크로스', bollinger: '볼린저 반등', copyTrade: '고수 따라하기' };
 
 const rows: Array<Record<string, string>> = [];
 const results: BacktestResponse[] = [];

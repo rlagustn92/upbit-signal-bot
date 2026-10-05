@@ -4,6 +4,7 @@ import type { BotDTO, SnapshotDTO } from '../../shared/types';
 import { coinMeta } from '../lib/coinMeta';
 import { baseSymbol, price, qty, relativeTime, signedPercent, signedWon, won } from '../lib/format';
 import { MODE_LABEL, STRATEGY_LABEL } from '../lib/labels';
+import { CopyTradersPanel } from './CopyTradersPanel';
 
 interface Props {
   snapshot: SnapshotDTO | null;
@@ -86,6 +87,9 @@ export function BotsTab({ snapshot, pendingBotIds, onCreate, onToggle, onDelete,
           봇 세팅하기 <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
         </span>
       </button>
+
+      {/* 하이퍼리퀴드 고수 따라하기 실험 */}
+      {snapshot && <CopyTradersPanel bots={bots} />}
 
       {/* 봇 카드 리스트 */}
       <div className="space-y-3 pt-1">

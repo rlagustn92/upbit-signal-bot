@@ -40,10 +40,18 @@ const STRATEGY_CARDS: Array<{ id: StrategyKind; title: string; desc: string; bad
     desc: '올라가는 흐름(큰 추세선 위)에서 가격이 볼린저 하단 아래로 과하게 빠지면 사고, 중심선으로 돌아오면 팔아요. 오래 안 돌아오면 정해진 시간 뒤에 정리해요. 기본값은 과거 4년 BTC·ETH·XRP 데이터 연구에서 가장 꾸준했던 설정이에요(미래 수익 보장 아님). 자주 사지는 않아요.',
     badge: '평균회귀',
   },
+  {
+    id: 'copyTrade',
+    title: '🐋 하이퍼리퀴드 고수 따라하기',
+    desc: '하이퍼리퀴드(공개 선물 거래소) 상위 트레이더들의 지갑을 실시간으로 보고 있다가, 누가 이 코인 롱을 새로 잡으면 예산을 사람 수로 나눈 만큼 따라 사고, 그 사람이 정리하면 그 몫을 따라 팔아요. 레버리지·숏은 따라 하지 않아요. 실험용이라 모의투자에서만 쓸 수 있어요.',
+    badge: '실험',
+  },
 ];
 
 /** 볼린저 반등은 넓은 '안전장치' 손절만 둔다 */
 const BOLLINGER_SL_CHOICES = [5.0, 8.0, 10.0];
+/** 따라하기도 자기 규칙(그 사람이 팔 때)으로 팔고, 손절은 급락 대비 안전장치만 */
+const COPY_SL_CHOICES = [5.0, 10.0, 15.0];
 
 const UNITS: CandleUnit[] = ['1m', '3m', '5m', '15m', '30m', '60m', '240m', '1d'];
 
@@ -60,7 +68,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
   const [sl, setSl] = useState(3.0);
   const [budget, setBudget] = useState(100000);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [cfg, setCfg] = useState<Record<StrategyKind, Cfg>>({ grid: {}, rsi: {}, goldenCross: {}, bollinger: {} });
+  const [cfg, setCfg] = useState<Record<StrategyKind, Cfg>>({ grid: {}, rsi: {}, goldenCross: {}, bollinger: {}, copyTrade: {} });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +79,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
         setDefaults(d);
         setTp(d.takeProfitPercent);
         setSl(d.stopLossPercent);
-        setCfg({ grid: { ...d.grid }, rsi: { ...d.rsi }, goldenCross: { ...d.goldenCross }, bollinger: { ...d.bollinger } });
+        setCfg({ grid: { ...d.grid }, rsi: { ...d.rsi }, goldenCross: { ...d.goldenCross }, bollinger: { ...d.bollinger }, copyTrade: { ...d.copyTrade, addresses: d.copyTrade.addresses.join('\n') } });
       })
       .catch((e) => setError(e.message));
     api
@@ -97,11 +105,16 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
   useEffect(() => {
     if (!defaults) return;
     if (strategy === 'bollinger') setSl((v) => (BOLLINGER_SL_CHOICES.includes(v) ? v : 8.0));
+    else if (strategy === 'copyTrade') setSl((v) => (COPY_SL_CHOICES.includes(v) ? v : 10.0));
     else setSl((v) => (defaults.stopLossChoices.includes(v) ? v : defaults.stopLossPercent));
   }, [strategy, defaults]);
 
   const setField = (key: string, value: number | string | boolean) => setCfg((prev) => ({ ...prev, [strategy]: { ...prev[strategy], [key]: value } }));
   const c = cfg[strategy];
+  /** 공통 목표 익절을 쓰지 않는 전략 */
+  const noTp = strategy === 'bollinger' || strategy === 'copyTrade';
+  const slChoices = strategy === 'bollinger' ? BOLLINGER_SL_CHOICES : strategy === 'copyTrade' ? COPY_SL_CHOICES : (defaults?.stopLossChoices ?? [2.0, 3.0, 5.0]);
+  const copyCount = String(c.addresses ?? '').split(/[\s,]+/).filter(Boolean).length;
 
   const summary = (() => {
     if (!defaults) return '';
@@ -109,6 +122,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
       const per = Number(c.orderKRW) > 0 ? Number(c.orderKRW) : Math.floor(budget / Math.max(1, Number(c.levels)));
       return `${c.spacingMode === 'atr' ? '변동폭 맞춤 간격' : `${c.spacingPercent}% 간격`} ${c.levels}칸 · 한 칸 ${won(per)}${c.downtrendGuard ? ' · 하락장 매수 멈춤' : ''}`;
     }
+    if (strategy === 'copyTrade') return `고수 ${copyCount}명 · 한 사람 몫 ${won(Math.floor(budget / Math.max(1, copyCount)))}${c.joinExisting ? ' · 이미 롱인 사람도 바로 따라 사기' : ' · 새로 진입할 때만'}`;
     if (strategy === 'bollinger')
       return `${CANDLE_LABEL[c.candleUnit as CandleUnit]} 볼린저(${c.period}, ${c.k}) 하단 매수 → 중심선 매도${Number(c.trendEmaPeriod) > 0 ? ` · EMA${c.trendEmaPeriod} 위에서만` : ''}${Number(c.maxHoldBars) > 0 ? ` · 최대 ${c.maxHoldBars}봉` : ''}`;
     if (strategy === 'rsi')
@@ -313,15 +327,35 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
                     <p className="col-span-2 text-[11px] text-[#8B95A1] leading-relaxed">밴드 폭을 키우면(예: 3) 더 깊게 빠질 때만 사서 횟수는 줄고 한 번의 질은 좋아지는 경향이 있어요. 중심선 복귀에서 팔기 때문에 목표 익절%는 쓰지 않아요.</p>
                   </>
                 )}
+                {strategy === 'copyTrade' && (
+                  <>
+                    <label className="col-span-2 block">
+                      <span className="text-[11px] font-bold text-gray-500">따라 할 하이퍼리퀴드 지갑 주소 (한 줄에 하나, 최대 10개)</span>
+                      <textarea
+                        value={String(c.addresses ?? '')}
+                        onChange={(e) => setField('addresses', e.target.value)}
+                        rows={5}
+                        spellCheck={false}
+                        className="mt-1 w-full bg-white text-[#191F28] text-[11px] font-mono px-3 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#093687]"
+                      />
+                    </label>
+                    <NumField label="조회 지연 허용 (초)" value={c.maxStaleSec} step={10} onChange={(v) => setField('maxStaleSec', v)} />
+                    <label className="flex items-center gap-2 text-xs font-bold text-[#4E5968]">
+                      <input type="checkbox" checked={!!c.joinExisting} onChange={(e) => setField('joinExisting', e.target.checked)} />
+                      켤 때 이미 롱인 사람도 바로 따라 사기
+                    </label>
+                    <p className="col-span-2 text-[11px] text-[#8B95A1] leading-relaxed">기본 주소는 하이퍼리퀴드 리더보드에서 최근 BTC·ETH·XRP 롱 성적이 좋았던 사람들이에요(npm run hl-pick). 5초마다 공개 데이터를 확인해서 몇 초 늦게 따라가요. 그 사람이 잘했다고 앞으로도 잘한다는 보장은 없어요.</p>
+                  </>
+                )}
                 {/* 공통 위험 관리 */}
                 <div className="col-span-2 pt-2 mt-1 border-t border-gray-200/70 text-[11px] font-extrabold text-[#4E5968]">위험 관리 (모든 전략 공통)</div>
-                {strategy !== 'grid' && strategy !== 'bollinger' && (
+                {strategy !== 'grid' && !noTp && (
                   <NumField label="트레일링 익절 % (0=목표에서 바로 팔기)" value={c.trailingStopPercent} step={0.5} onChange={(v) => setField('trailingStopPercent', v)} />
                 )}
                 <NumField label="하루 최대 손실 % (예산 대비, 0=끄기)" value={c.dailyLossLimitPercent} step={1} onChange={(v) => setField('dailyLossLimitPercent', v)} />
                 <NumField label="손실 후 쉬는 시간 (분)" value={c.cooldownAfterLossMin} step={10} onChange={(v) => setField('cooldownAfterLossMin', v)} />
                 <p className="col-span-2 text-[11px] text-[#8B95A1] leading-relaxed">
-                  {strategy !== 'grid' && strategy !== 'bollinger' && '트레일링 익절: 목표 익절에 닿아도 바로 팔지 않고, 계속 오르면 따라가다가 최고가에서 정한 %만큼 내려오면 팔아요. '}
+                  {strategy !== 'grid' && !noTp && '트레일링 익절: 목표 익절에 닿아도 바로 팔지 않고, 계속 오르면 따라가다가 최고가에서 정한 %만큼 내려오면 팔아요. '}
                   하루 손실 한도에 닿거나 손실을 보고 판 직후에는 새로 사지 않아요(파는 건 계속).
                 </p>
               </div>
@@ -334,8 +368,8 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
       <div className="mt-6 space-y-3 bg-[#F9FAFB] p-4.5 rounded-2xl border border-gray-100">
         <label className="text-[14px] font-extrabold text-[#191F28] block">3. 목표 익절률 & 손절 기준</label>
         <div className="grid grid-cols-2 gap-3">
-          <div className={strategy === 'bollinger' ? 'opacity-40 pointer-events-none' : ''}>
-            <span className="text-xs font-bold text-gray-500">목표 익절 (+%){strategy === 'bollinger' ? ' · 안 씀' : ''}</span>
+          <div className={noTp ? 'opacity-40 pointer-events-none' : ''}>
+            <span className="text-xs font-bold text-gray-500">목표 익절 (+%){noTp ? ' · 안 씀' : ''}</span>
             <div className="flex items-center gap-1.5 mt-1.5">
               {(defaults?.takeProfitChoices ?? [1.0, 2.0, 3.5]).map((rate) => (
                 <button
@@ -352,7 +386,7 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
           <div>
             <span className="text-xs font-bold text-gray-500">손절 기준 (-%)</span>
             <div className="flex items-center gap-1.5 mt-1.5">
-              {(strategy === 'bollinger' ? BOLLINGER_SL_CHOICES : (defaults?.stopLossChoices ?? [2.0, 3.0, 5.0])).map((rate) => (
+              {slChoices.map((rate) => (
                 <button
                   key={rate}
                   type="button"
@@ -367,7 +401,8 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
         </div>
         <p className="text-[11px] text-[#8B95A1] leading-relaxed">
           {strategy === 'grid' ? '그물망은 칸마다 산 가격 기준으로 익절해요. ' : ''}
-          {strategy === 'bollinger' ? '볼린저 반등은 중심선 복귀·시간 손절로 팔고, 손절 %는 급락 대비 안전장치예요(연구에서는 넓은 손절이 더 나았어요). ' : ''}손절은 평균 매입가(수수료 포함) 대비로 판단해 시장가로 팔아요. 급락하면 실제 체결가는 기준보다 낮을 수 있어요.
+          {strategy === 'bollinger' ? '볼린저 반등은 중심선 복귀·시간 손절로 팔고, 손절 %는 급락 대비 안전장치예요(연구에서는 넓은 손절이 더 나았어요). ' : ''}
+          {strategy === 'copyTrade' ? '따라하기는 그 사람이 정리할 때 팔고, 손절 %는 급락 대비 안전장치예요(손절되면 봇이 꺼져요). ' : ''}손절은 평균 매입가(수수료 포함) 대비로 판단해 시장가로 팔아요. 급락하면 실제 체결가는 기준보다 낮을 수 있어요.
         </p>
       </div>
 
@@ -404,7 +439,13 @@ export function CreateBotModal({ livePrices, onClose, onCreated }: Props) {
       </div>
 
       {/* 5. 과거로 미리 테스트 */}
-      {defaults && (
+      {defaults && strategy === 'copyTrade' && (
+        <div className="mt-6 rounded-2xl border border-gray-200/80 bg-[#F9FAFB] p-4 text-[11px] text-[#6B7684] leading-relaxed">
+          <p className="text-[13px] font-extrabold text-[#191F28] mb-1">과거로 미리 테스트</p>
+          따라하기는 다른 사람의 거래 기록이 필요해서 이 화면의 과거 테스트는 쓸 수 없어요. 대신 <code className="font-mono">npm run hl-pick</code>이 최근 60일 동안 이 사람들을 업비트 가격으로 따라 했으면 어땠는지 보여 줘요. 모의투자로 켜 두고 실제로 어떻게 되는지 지켜보는 게 가장 정확한 실험이에요.
+        </div>
+      )}
+      {defaults && strategy !== 'copyTrade' && (
         <BacktestPanel
           request={{ marketCode: selected, strategy, budgetKRW: budget, takeProfitPercent: tp, stopLossPercent: sl, strategyConfig: c as CreateBotRequest['strategyConfig'] }}
         />

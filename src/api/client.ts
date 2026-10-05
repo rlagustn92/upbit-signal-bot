@@ -13,6 +13,7 @@ import type {
   AccountDTO,
   BacktestRequest,
   BacktestResultDTO,
+  CopyTradersResponse,
 } from '../../shared/types';
 
 // 백엔드 API 호출. Secret Key는 등록할 때 한 번 서버로 보내고, 프론트 어디에도 저장하지 않는다.
@@ -59,6 +60,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   strategyDefaults: () => request<StrategyDefaults>('GET', '/strategy-defaults'),
   markets: () => request<MarketDTO[]>('GET', '/markets'),
+  copyTraders: () => request<CopyTradersResponse>('GET', '/copy/traders'),
 
   createBot: (req: CreateBotRequest) => request<{ bot: BotDTO; startError: string | null }>('POST', '/bots', req),
   updateBot: (id: number, req: UpdateBotRequest) => request<BotDTO>('PATCH', `/bots/${id}`, req),

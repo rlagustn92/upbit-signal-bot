@@ -2,7 +2,10 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import type { App } from '../app';
 import path from 'node:path';
 import { backtest, normalizeBacktestRequest } from '../backtest';
-import { STRATEGY_DEFAULTS } from '../config/strategyDefaults';
+import fs from 'node:fs';
+import type { CopyTradersResponse, StrategyConfig } from '../../shared/types';
+import { defaultCopyAddresses, strategyDefaultsForClient } from '../config/strategyDefaults';
+import { copyFeed } from '../hyperliquid/watcher';
 import { log, type LogTag } from '../lib/logger';
 import { BotError } from '../services/botEngine';
 import { orderToDTO, signalToDTO, tradeToDTO } from '../services/snapshot';
@@ -105,8 +108,55 @@ export function createRouter(app: App): express.Router {
   });
 
   // ───── 전략 기본값/마켓 ─────
-  r.get('/strategy-defaults', wrap(() => STRATEGY_DEFAULTS));
+  r.get('/strategy-defaults', wrap(() => strategyDefaultsForClient()));
   r.get('/markets', wrap(() => app.market.listKrwMarkets()));
+
+  // ───── 고수 따라하기: 따라 하는 지갑들의 지금 포지션(하이퍼리퀴드 공개 데이터) ─────
+  r.get(
+    '/copy/traders',
+    wrap((): CopyTradersResponse => {
+      const coins = ['BTC', 'ETH', 'XRP'];
+      const byAddr = new Map<string, number[]>();
+      for (const b of app.repo.listBots()) {
+        const cfg = b.strategyConfig as StrategyConfig;
+        if (cfg.kind !== 'copyTrade') continue;
+        const coin = b.marketCode.split('-')[1];
+        if (coin && !coins.includes(coin)) coins.push(coin);
+        for (const a of cfg.addresses) byAddr.set(a, [...(byAddr.get(a) ?? []), b.id]);
+      }
+      if (!byAddr.size) for (const a of defaultCopyAddresses()) byAddr.set(a, []);
+      const feed = copyFeed();
+      feed.want([...byAddr.keys()]);
+      let pickedAt: string | null = null;
+      try {
+        pickedAt = (JSON.parse(fs.readFileSync(path.join(app.env.dataDir, 'hyperliquid', 'picks.json'), 'utf8')) as { generatedAt?: string }).generatedAt ?? null;
+      } catch {
+        /* 없음 */
+      }
+      return {
+        coins,
+        pickedAt,
+        traders: [...byAddr].map(([address, botIds]) => {
+          const s = feed.get(address);
+          return {
+            address,
+            botIds,
+            ok: s?.ok ?? false,
+            updatedAt: s?.updatedAt || null,
+            accountValue: s?.accountValue ?? null,
+            error: s?.error ?? null,
+            positions: coins.map((coin) => ({
+              coin,
+              size: s?.positions[coin] ?? 0,
+              entryPx: s?.details[coin]?.entryPx ?? null,
+              unrealizedPnl: s?.details[coin]?.unrealizedPnl ?? null,
+              leverage: s?.details[coin]?.leverage ?? null,
+            })),
+          };
+        }),
+      };
+    }),
+  );
 
   // ───── 백테스트(과거 캔들로 전략 시험) — 한 번에 하나만(업비트 조회 한도 보호) ─────
   let backtestRunning = false;
